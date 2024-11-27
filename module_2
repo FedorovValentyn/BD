@@ -1,0 +1,124 @@
+﻿CREATE DATABASE mOdule2;
+
+USE mOdule2;
+
+CREATE TABLE item_dov(
+    item_id INT PRIMARY KEY,
+    item_name VARCHAR(55),
+    item_price INT,
+    valute_id VARCHAR(3)
+                     );
+
+CREATE TABLE dist_do(
+    dist_id INT PRIMARY KEY,
+    dist_name VARCHAR(55),
+    dist_address VARCHAR(70)
+);
+
+CREATE TABLE contract(
+    contract_id INT PRIMARY KEY,
+    contract_dist_id INT,
+    contract_item_id INT,
+    contract_quant INT
+);
+
+CREATE TABLE valute_dov(
+    valute_id VARCHAR(3) PRIMARY KEY,
+    valute_name VARCHAR(55),
+    valute_UID VARCHAR(5)
+);
+
+
+ALTER TABLE item_dov
+ADD CONSTRAINT fk_valute_item
+FOREIGN KEY (valute_id) REFERENCES valute_dov(valute_id);
+
+ALTER TABLE contract
+ADD CONSTRAINT fk_contract_dist_id
+FOREIGN KEY (contract_dist_id) REFERENCES dist_do(dist_id),
+ADD CONSTRAINT fk_contract_item_id
+FOREIGN KEY (contract_item_id) REFERENCES item_dov(item_id);
+
+
+##Завдання 1
+DELIMITER //
+
+CREATE PROCEDURE GetContractDetails(
+    IN item_name_prefix VARCHAR(55),
+    IN dist_name_prefix VARCHAR(55)
+)
+BEGIN
+
+SELECT
+    contract_id AS "Номер_контракту",
+    item_name AS "Найменування_товару",
+    dist_name AS "Назва_дистриб'ютора",
+    contract_quant AS "Кількість",
+    item_price AS "Ціна_товару",
+    valute_id AS "Шифр",
+    (item_price * contract_quant *
+        CASE
+            WHEN valute_id = '980' THEN 7.45
+            ELSE 1
+        END
+    ) AS "Вартість"
+FROM
+    contract
+JOIN
+    item_dov ON contract_item_id = item_id
+JOIN
+    dist_do ON contract_dist_id = dist_id
+WHERE
+    item_name LIKE CONCAT(item_name_prefix, '%') AND
+    dist_name LIKE CONCAT(dist_name_prefix, '%')
+ORDER BY
+    dist_name ASC,
+    item_name ASC;
+
+END //
+DELIMITER ;
+
+
+CALL GetContractDetails('Колонки', '');
+
+
+## 2
+
+DELIMITER //
+
+CREATE PROCEDURE CountUniqueContracts(
+    IN contract_id_start INT,
+    IN contract_id_end INT
+)
+BEGIN
+    SELECT
+        COUNT(DISTINCT contract_id) AS Кількість_контрактів
+    FROM
+        contract
+    WHERE
+        contract_id BETWEEN LEAST(contract_id_start,contract_id_end) AND GREATEST(contract_id_start, contract_id_end)
+    AND  contract_id NOT IN (contract_id_start,contract_id_end );
+END //
+
+DELIMITER ;
+
+
+
+CALL CountUniqueContracts(105274, 356897);
+
+
+
+#3
+SELECT
+    dist_id AS "Номер_дистриб'ютора",
+    dist_name AS "Назва_дистриб'ютора"
+FROM
+    dist_do
+WHERE
+    dist_id NOT IN (
+        SELECT contract_dist_id
+        FROM contract
+        JOIN item_dov  ON contract_item_id = item_id
+        WHERE item_name = 'Кухоний комбайн Kenwood'
+    );
+

@@ -1,0 +1,260 @@
+﻿CREATE DATABASE lab1;
+USE lab1;
+
+CREATE TABLE products(
+    prod_id INT PRIMARY KEY,
+    prod_name VARCHAR(55) NOT NULL
+);
+
+CREATE TABLE types(
+    type_id INT PRIMARY KEY,
+    type_name VARCHAR(55) NOT NULL
+);
+
+CREATE TABLE price_list(
+    price_list_id INT PRIMARY KEY ,
+    price_list_id_prod INT NOT NULL,
+    price_list_id_type INT NOT NULL,
+    price_list_price DECIMAL(8,2) NOT NULL
+);
+
+CREATE TABLE realization(
+    realization_id INT PRIMARY KEY,
+    realization_name VARCHAR(35),
+    realization_surname VARCHAR(35),
+    realization_middle_name VARCHAR(35)
+);
+
+CREATE TABLE production(
+    production_id INT,
+    production_price_list_id INT,
+    production_quantity INT,
+    production_date DATE,
+    production_un_id INT PRIMARY KEY AUTO_INCREMENT
+);
+
+ALTER TABLE price_list
+ADD CONSTRAINT fk_price_list_types
+FOREIGN KEY (price_list_id_type) REFERENCES types(type_id),
+ADD CONSTRAINT fk_price_list_products
+FOREIGN KEY (price_list_id_prod) REFERENCES products(prod_id);
+
+
+ALTER TABLE production
+ADD CONSTRAINT fk_production_production_id
+FOREIGN KEY (production_id) REFERENCES realization(realization_id),
+
+ADD CONSTRAINT fk_production_production_price_list_id
+FOREIGN KEY (production_price_list_id) REFERENCES price_list(price_list_id);
+
+
+## LAB 2
+##1
+SELECT prod_name, type_name, price_list_price, production_quantity,
+       IF(production_quantity <= 20, price_list_price * 1.3, price_list_price * 1.28) AS cost
+FROM products
+INNER JOIN price_list ON price_list_id_prod = prod_id
+INNER JOIN types ON price_list_id_type = type_id
+INNER JOIN production ON production_price_list_id = price_list_id
+INNER JOIN realization ON production_id = realization_id
+WHERE (prod_name LIKE 'Костюм' OR prod_name LIKE 'Сукня')
+AND type_name LIKE 'жіночі';
+
+##2
+SELECT
+    CONCAT(realization_name, ' ',realization_surname, ' ', realization_middle_name) AS worker,
+    CONCAT(prod_name, ' ',type_name) AS full_prod_name,
+    production_quantity, production_date,
+    IF(production_quantity <= 20, price_list_price * 1.3, price_list_price * 1.28) AS cost
+FROM products
+INNER JOIN price_list ON price_list_id_prod = prod_id
+INNER JOIN types ON price_list_id_type = type_id
+INNER JOIN production ON production_price_list_id = price_list_id
+INNER JOIN realization ON production_id = realization_id
+WHERE (QUARTER(production_date) = 1 AND YEAR(production_date) = 2005);
+
+#3
+SELECT
+    price_list_id,
+    CONCAT(realization_name, ' ',realization_surname, ' ', realization_middle_name) AS worker,
+    CONCAT(prod_name, ' ',type_name) AS full_prod_name,
+    production_quantity
+FROM products
+INNER JOIN price_list ON price_list_id_prod = prod_id
+INNER JOIN types ON price_list_id_type = type_id
+INNER JOIN production ON production_price_list_id = price_list_id
+INNER JOIN realization ON production_id = realization_id
+ORDER BY production_quantity DESC
+LIMIT 10;
+
+##LAB 3
+#1
+DELIMITER $$
+
+CREATE DEFINER = 'root'@'localhost' PROCEDURE `quantity_proc`(IN start DATE, IN end DATE)
+BEGIN
+    SELECT
+       price_list_id,
+       CONCAT(realization_name, ' ', realization_surname, ' ', realization_middle_name) AS worker,
+       CONCAT(prod_name, ' ', type_name) AS full_prod_name,
+       production_quantity,
+       IF(production_quantity <= 20, price_list_price * 1.3, price_list_price * 1.28) AS cost,
+       production_date
+    FROM products
+    INNER JOIN price_list ON price_list_id_prod = prod_id
+    INNER JOIN types ON price_list_id_type = type_id
+    INNER JOIN production ON production_price_list_id = price_list_id
+    INNER JOIN realization ON production_id = realization_id
+    WHERE (start IS NULL AND end IS NULL)
+       OR (production_date >= start AND production_date <= end);
+END$$
+
+DELIMITER ;
+
+
+CALL quantity_proc(NULL, NULL);
+
+#2
+DELIMITER $$
+CREATE DEFINER = 'root'@'localhost' PROCEDURE `average_proc`()
+BEGIN
+   SELECT
+    prod_name,
+    type_name,
+    production_quantity
+FROM
+    products
+INNER JOIN price_list ON price_list_id_prod = prod_id
+INNER JOIN types ON price_list_id_type = type_id
+INNER JOIN production ON production_price_list_id = price_list_id
+INNER JOIN realization ON production_id = realization_id
+WHERE production_quantity < (SELECT AVG(production_quantity)
+                             FROM production, price_list
+                             WHERE price_list_id = production_price_list_id
+                             AND price_list_id_prod = prod_id);
+END$$
+DELIMITER ;
+
+CALL average_proc;
+
+#3
+DELIMITER $$
+
+CREATE DEFINER = 'root'@'localhost' PROCEDURE `last_days_proc`(IN days INT)
+
+BEGIN
+SELECT
+    CONCAT(realization_name, ' ', realization_surname, ' ', realization_middle_name) AS worker,
+    CONCAT(prod_name, ' ', type_name) AS full_prod_name,
+    production_quantity, production_date
+FROM products
+INNER JOIN price_list ON price_list_id_prod = prod_id
+INNER JOIN types ON price_list_id_type = type_id
+INNER JOIN production ON production_price_list_id = price_list_id
+INNER JOIN realization ON production_id = realization_id
+WHERE
+    production_date>=(SELECT MAX(production_date)FROM production) - INTERVAL days DAY
+    ORDER BY production_date DESC;
+END$$
+
+DELIMITER ;
+
+
+CALL last_days_proc(60);
+
+##LAB 4
+#1
+DELIMITER $$
+
+CREATE DEFINER = 'root'@'localhost' PROCEDURE `workers_proc`(IN name VARCHAR(30),
+                                                         IN surname VARCHAR(30),
+                                                         IN middle_name VARCHAR(30))
+BEGIN
+    SELECT
+        CONCAT(realization_name, ' ', realization_surname, ' ', realization_middle_name) AS worker,
+        SUM(production_quantity),
+        SUM(IF(production_quantity <= 20,
+                price_list_price * 1.3, price_list_price * 1.28))AS cost
+    FROM products
+    INNER JOIN price_list ON price_list_id_prod = prod_id
+    INNER JOIN types ON price_list_id_type = type_id
+    INNER JOIN production ON production_price_list_id = price_list_id
+    INNER JOIN realization ON production_id = realization_id
+    WHERE
+            realization_name LIKE name AND
+            realization_surname LIKE surname AND
+            realization_middle_name LIKE middle_name
+    GROUP BY worker;
+END$$
+DELIMITER ;
+
+
+CALL workers_proc('Коваль','Катерина','Кирилівна');
+
+#2
+DELIMITER $$
+CREATE DEFINER = 'root'@'localhost' PROCEDURE `products_proc`(IN months INT, IN years INT)
+BEGIN
+    SELECT
+            prod_name,
+            SUM(production_quantity) AS count,
+            SUM(IF(production_quantity <= 20,
+                price_list_price * 1.3, price_list_price * 1.28))AS cost
+    FROM products
+    INNER JOIN price_list ON price_list_id_prod = prod_id
+    INNER JOIN types ON price_list_id_type = type_id
+    INNER JOIN production ON production_price_list_id = price_list_id
+    INNER JOIN realization ON production_id = realization_id
+    WHERE MONTH(production_date) = months AND YEAR(production_date) = years
+    GROUP BY prod_name;
+END$$
+DELIMITER ;
+
+CALL products_proc(9, 2019);
+
+##LAB 5
+#1
+SELECT
+    CONCAT(prod_name, ' ', type_name) AS full_prod_name,
+    SUM(CASE WHEN QUARTER(production_date) = 1 AND YEAR(production_date) = 2019 THEN production_quantity * price_list_price ELSE 0 END) AS "1 квартал 2019",
+    SUM(CASE WHEN QUARTER(production_date) = 2 AND YEAR(production_date) = 2019 THEN production_quantity * price_list_price ELSE 0 END) AS "2 квартал 2019",
+    SUM(CASE WHEN QUARTER(production_date) = 3 AND YEAR(production_date) = 2019 THEN production_quantity * price_list_price ELSE 0 END) AS "3 квартал 2019"
+ FROM products
+    INNER JOIN price_list ON price_list_id_prod = prod_id
+    INNER JOIN types ON price_list_id_type = type_id
+    INNER JOIN production ON production_price_list_id = price_list_id
+    INNER JOIN realization ON production_id = realization_id
+GROUP BY
+    full_prod_name
+ORDER BY
+     full_prod_name;
+#2
+DELIMITER $$
+
+CREATE DEFINER = 'root'@'localhost' PROCEDURE `empty_proc`(IN start DATE, IN end DATE)
+BEGIN
+    SELECT
+       CONCAT(prod_name, ' ', type_name) AS full_prod_name,
+       price_list_price
+    FROM products
+    INNER JOIN price_list ON price_list_id_prod = prod_id
+    INNER JOIN types ON price_list_id_type = type_id
+
+
+      WHERE price_list_id NOT IN(
+          SELECT production_price_list_id
+          FROM realization
+          INNER JOIN production ON production_price_list_id = price_list_id
+          WHERE (production_date >= start AND production_date <= end));
+END$$
+
+DELIMITER ;
+
+CALL empty_proc('2019-01-10', '2019-02-28')
+
+
+
+
+
+
+

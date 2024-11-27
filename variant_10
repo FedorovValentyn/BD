@@ -1,0 +1,135 @@
+﻿/*ЕКЗАМЕНАЦІЙНИЙ БІЛЕТ № 10
+1. Команди вибірки записів з таблиці MySQL за шаблоном. Виняток дублікатів в
+результуючому наборі. Перейменування стовпців в результуючому наборі. (10 балів)
+
+Щоб вибрати записи з таблиці за певним шаблоном та виключити дублікати, використовуйте команду SELECT DISTINCT.
+Ця команда вибирає унікальні (різні) значення з вказаних стовпців у результуючому наборі:
+SELECT DISTINCT column1, column2, ...
+FROM table_name
+WHERE condition;
+Тут column1, column2, ... - це стовпці, за якими ви хочете відфільтрувати унікальні значення,
+і condition - це умова, яка визначає ваш шаблон вибірки.
+Щодо перейменування стовпців у результуючому наборі, використовуйте ключове слово AS для зміни імені стовпців у вибірці:
+SELECT column_name AS new_name, ...
+FROM table_name
+WHERE condition;
+
+
+2. Значення та синтаксис функції CONCAT(), приклад. (10 балів)
+
+Функція CONCAT() додає разом два або більше вирази. Синтаксис:
+CONCAT(value_1, value_2,...,value_n)
+value_1, value_2,...,value_n - це елементи будь-якого типу даних, які потрібно об’єднати в одну строку.
+Приклад:
+CONCAT('a', 'b', 'c')
+Результат:
+‘abc’
+
+3. Практичне завдання (20 балів).
+Відповідно до виданих таблиць створити в MySQL базу даних.
+Створити до бази наступні запити:
+ запит про замовлення товарів за третій квартал. Динамічний набір записів
+повинен містити такі поля: Номер замовлення, Найменування товару, Назва
+фірми, Кількість, Ціна, Вартість. Дані впорядкувати по алфавіту назв фірм,
+а в межах однієї групи – по назві товару.
+ груповий запит, що виводить загальну кількість контрактів для кожної
+фірми.
+ запит на зовнішнє об’єднання, який повинен містити товари, які не
+замовляла фірма ТОВ "Impression".
+Вартість розраховуються як добуток ціни товару на кількість замовленого товару. Якщо
+Вид замовлення “Самовивіз”, то ціна зменшується на 3,5%, в іншому випадку - ціна
+залишається незмінною
+*/
+
+
+CREATE DATABASE variant_10;
+
+USE variant_10;
+
+CREATE TABLE firm_dov(
+    firm_id INT PRIMARY KEY,
+    firm_name VARCHAR(55),
+    firm_address VARCHAR(55),
+    firm_code VARCHAR(55)
+);
+
+CREATE TABLE orders(
+    order_id INT PRIMARY KEY,
+    order_firm_id INT,
+    order_type INT,
+    order_date DATE,
+    order_payment_date DATE
+    );
+
+CREATE TABLE items(
+    item_id INT PRIMARY KEY,
+    item_name VARCHAR(70),
+    item_price INT
+    );
+
+CREATE TABLE orders_info(
+    orders_info_uniq INT PRIMARY KEY AUTO_INCREMENT,
+    orders_info_id INT,
+    orders_info_item_id INT,
+    orders_info_quantity INT
+);
+
+CREATE TABLE types(
+    type_id INT PRIMARY KEY,
+    type_name VARCHAR(35)
+);
+
+
+ALTER TABLE orders
+ADD CONSTRAINT firm_id_orders
+FOREIGN KEY (order_firm_id) REFERENCES firm_dov(firm_id),
+ADD CONSTRAINT type_orders
+FOREIGN KEY (order_type) REFERENCES types(type_id);
+
+ALTER TABLE orders_info
+ADD CONSTRAINT orders_item_id
+FOREIGN KEY (orders_info_item_id) REFERENCES items(item_id),
+ADD CONSTRAINT orders_order_id
+FOREIGN KEY (orders_info_id) REFERENCES orders(order_id);
+
+# 1
+
+SELECT order_id, item_name, firm_name, orders_info_quantity, item_price,
+       IF(type_id = 2, item_price * orders_info_quantity * 0.965, item_price * orders_info_quantity) AS cost
+FROM
+    orders
+JOIN orders_info  ON order_id = orders_info_id
+JOIN items ON orders_info_item_id = item_id
+JOIN firm_dov ON order_firm_id = firm_id
+JOIN types ON order_type = type_id
+
+WHERE MONTH(order_date) > 6 AND MONTH(order_date) < 10;
+
+# 2
+
+SELECT
+    firm_name,
+    COUNT(order_id) AS total_orders
+FROM
+    orders
+JOIN
+    firm_dov ON order_firm_id = firm_id
+GROUP BY
+    firm_name;
+
+#3
+
+SELECT DISTINCT item_id, item_name
+FROM items
+LEFT JOIN orders_info  ON item_id = orders_info_item_id
+LEFT JOIN orders  ON orders_info_id = order_id
+WHERE order_firm_id != (
+    SELECT firm_id
+    FROM firm_dov
+    WHERE firm_name = 'ТОV "Impression"'
+)
+OR order_firm_id IS NULL;
+
+
+
+

@@ -1,0 +1,142 @@
+﻿/*ЕКЗАМЕНАЦІЙНИЙ БІЛЕТ № 5
+1. Команди створення таблиці в базі даних. Параметр «опис стовпця».
+Необов’язкові і загальні параметри опису стовпців таблиці. Додаткові опції таблиці. (10
+балів)
+
+При створенні таблиці в базі даних, вказуємо опис кожного стовпця, визначаючи його ім'я, тип даних та різні властивості.
+Ось загальна схема команди створення таблиці з деякими загальними параметрами:
+CREATE TABLE ім'я_таблиці ( стовпець1 тип_даних_стовпця1 [властивості_стовпця1],
+стовпець2 тип_даних_стовпця2 [властивості_стовпця2],
+... [додаткові_опції_таблиці] );
+Основні параметри опису стовпців таблиці:
+Типи даних: Це може бути INT, VARCHAR, TEXT, DATE, DATETIME, BOOL (або BOOLEAN) і т.д.
+для числових значень, рядків, тексту, дати, дати та часу, логічних значень відповідно.
+Властивості стовпців: Вони включають NOT NULL (значення не може бути порожнім),
+DEFAULT value (значення за замовчуванням), AUTO_INCREMENT (значення автоматично збільшується),
+PRIMARY KEY (унікальне значення для кожного запису), UNIQUE (унікальне значення в межах стовпця) та інші.
+Додаткові опції таблиці: Це можуть бути різні параметри, які впливають на саму таблицю, а не на окремі стовпці.
+Наприклад, ENGINE (тип движка таблиці, наприклад, InnoDB, MyISAM), CHARACTER SET (набір символів),
+COLLATE (спосіб порівняння текстових значень), COMMENT (коментар про таблицю) тощо.
+
+
+2. Значення та синтаксис функції EXTRACT(), приклад. (10 балів)
+
+Функція EXTRACT() використовується для отримання конкретної частини дати або часу, такої як рік, місяць, день,
+година тощо. Ось синтаксис цієї функції:
+EXTRACT(unit FROM date)
+unit - це одиниця, яку ви хочете видобути з дати або часу, така як YEAR, MONTH, DAY, HOUR, MINUTE, SECOND і т.д.
+date - це дата або вираз дати, з якої ви хочете видобути частину.
+Наприклад, якщо вам потрібно отримати рік з конкретної дати, ви можете використати EXTRACT() так:
+SELECT EXTRACT(YEAR FROM '2023-07-15');
+
+
+3. Практичне завдання (20 балів).
+Відповідно до виданих таблиць створити в MySQL базу даних.
+Створити до бази наступні запити:
+ запит про поставлення товарів. Динамічний набір записів повинен містити
+такі поля: Номер контракту, Найменування товару, Назва дистриб’ютора,
+Кількість, Ціна товару, Шифр, Вартість. Дані впорядкувати по алфавіту назв
+дистриб’юторів, а в межах однієї групи – по найменуванню товару.
+ груповий запит, що виводить загальну кількість контрактів для кожного
+дистриб’ютора.
+ запит на зовнішнє об’єднання, який повинен містити дистриб’юторів, які не
+постачали товар Кухоний комбайн Kenwood.
+Вартість розраховуються як добуток ціни товару на кількість поставленого товару на
+коефіцієнт перерахунку. Якщо код валюти поставленого товару дорівнює 980, то
+коефіцієнт перерахунку дорівнює 7,45, в іншому випадку дорівнює 1.*/
+
+
+CREATE DATABASE variant_5;
+
+USE variant_5;
+
+CREATE TABLE items(
+    item_id INT PRIMARY KEY,
+    item_name VARCHAR(55),
+    item_type_id INT,
+    item_price INT,
+    item_valute_id VARCHAR(3)
+);
+
+CREATE TABLE dist(
+    dist_id INT PRIMARY KEY,
+    dist_name VARCHAR(55),
+    dist_address VARCHAR(55)
+);
+
+CREATE TABLE contracts(
+    contract_id INT PRIMARY KEY,
+    contract_dist_id INT,
+    contract_item_id INT,
+    contract_quantity INT
+);
+
+CREATE TABLE valute(
+    valute_id VARCHAR(3) PRIMARY KEY,
+    valute_name VARCHAR(40),
+    valute_short VARCHAR(3)
+);
+
+CREATE TABLE types(
+    type_id INT PRIMARY KEY,
+    type_name VARCHAR(55)
+);
+
+ALTER TABLE items
+ADD CONSTRAINT item_type_id_fk
+FOREIGN KEY (item_type_id) REFERENCES types(type_id),
+ADD CONSTRAINT item_valute_id_fk
+FOREIGN KEY (item_valute_id) REFERENCES valute(valute_id);
+
+ALTER TABLE contracts
+ADD CONSTRAINT contract_dist_id_fk
+FOREIGN KEY (contract_dist_id) REFERENCES dist(dist_id),
+ADD CONSTRAINT contract_item_id
+FOREIGN KEY (contract_item_id) REFERENCES items(item_id);
+
+
+#1
+SELECT
+    contract_id AS "Номер_контракту",
+    item_name AS "wНайменування товару",
+    dist_name AS "Назва дистриб'ютора",
+    contract_quantity AS "Кількість",
+    item_price AS "Ціна товару",
+    valute_short AS "Шифр",
+    IF(item_valute_id = '980', contract_quantity * item_price * 7.45, contract_quantity * item_price) AS "Вартість"
+FROM
+    contracts
+JOIN items ON contract_item_id = item_id
+JOIN dist ON contract_dist_id = dist_id
+JOIN valute ON item_valute_id = valute_id
+ORDER BY
+    dist_name ASC,
+    item_name ASC;
+
+#2
+SELECT
+    dist_name AS "Назва дистриб'ютора",
+    COUNT(contract_id) AS "Загальна кількість контрактів"
+FROM
+    dist
+LEFT JOIN
+    contracts ON dist_id = contract_dist_id
+GROUP BY
+    dist_name;
+
+#3
+SELECT DISTINCT
+    dist_id AS "ID Дистриб'ютора",
+    dist_name AS "Назва Дистриб'ютора"
+FROM
+    dist
+LEFT JOIN contracts ON dist_id = contract_dist_id
+WHERE
+    dist_id NOT IN (
+        SELECT contract_dist_id
+        FROM contracts
+        JOIN items ON contract_item_id = item_id
+        WHERE item_name LIKE '%Kenwood%'
+    );
+
+

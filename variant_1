@@ -1,0 +1,133 @@
+﻿/*1. Визначення понять «СУБД» і «база даних». Класифікація СУБД. (10 балів)
+СУБД (система управління базами даних) – це програмне забезпечення для створення, управління та оптимізації доступу до баз даних. Воно дозволяє додавати, змінювати, видаляти дані, виконувати запити та створювати звіти.
+
+База даних – це структурована колекція даних, організована у вигляді таблиць для ефективного зберігання й обробки інформації.
+  Класифікація СУБД:
+Ієрархічні
+Мережеві
+Реляційні
+
+
+2. Значення та синтаксис функції ADDDATE(), приклад. (10 балів)
+Функція ADDDATE() використовується для додавання дати або часу до іншої дати. Синтаксис функції виглядає так:
+ADDDATE(date, INTERVAL expr unit)
+date – початкова дата або час, до якої ви хочете додати інтервал.
+expr – значення, яке ви хочете додати до date.
+unit – одиниця вимірювання, наприклад, DAY, MONTH, YEAR, HOUR, MINUTE, SECOND тощо.
+Наприклад, якщо ви хочете додати 3 дні до поточної дати, ви можете використати ADDDATE() так:
+SELECT ADDDATE(NOW(), INTERVAL 3 DAY);
+
+
+
+
+3. Практичне завдання (20 балів).
+Відповідно до виданих таблиць створити в MySQL базу даних.
+Створити до бази наступні запити:
+ запит про замовлення товарів за третій квартал. Динамічний набір записів
+повинен містити такі поля: Номер замовлення, Найменування товару, Назва
+фірми, Кількість, Ціна, Вартість. Дані впорядкувати по алфавіту назв фірм,
+а в межах однієї групи – по назві товару.
+ груповий запит, що виводить загальну кількість контрактів для кожної
+фірми.
+ запит на зовнішнє об’єднання, який повинен містити товари, які не
+замовляла фірма ТОВ "Impression".
+Вартість розраховуються як добуток ціни товару на кількість замовленого товару. Якщо
+Вид замовлення “Самовивіз”, то ціна зменшується на 3,5%, в іншому випадку - ціна
+залишається незмінною*/
+
+
+
+CREATE DATABASE variant_1;
+
+USE variant_1;
+
+CREATE TABLE firm_dov(
+    firm_id INT PRIMARY KEY,
+    firm_name VARCHAR(55),
+    firm_address VARCHAR(55),
+    firm_code NUMERIC
+);
+
+CREATE TABLE orders(
+    order_id INT PRIMARY KEY,
+    order_firm_id INT,
+    order_type INT,
+    order_date DATE,
+    order_payment_date DATE
+    );
+
+CREATE TABLE items(
+    item_id INT PRIMARY KEY,
+    item_name VARCHAR(70),
+    item_price INT
+    );
+
+CREATE TABLE orders_info(
+    orders_info_uniq INT PRIMARY KEY AUTO_INCREMENT,
+    orders_info_id INT,
+    orders_info_item_id INT,
+    orders_info_quantity INT
+);
+
+CREATE TABLE types(
+    type_id INT PRIMARY KEY,
+    type_name VARCHAR(35)
+);
+
+
+ALTER TABLE orders
+ADD CONSTRAINT firm_id_orders
+FOREIGN KEY (order_firm_id) REFERENCES firm_dov(firm_id),
+ADD CONSTRAINT type_orders
+FOREIGN KEY (order_type) REFERENCES types(type_id);
+
+ALTER TABLE orders_info
+ADD CONSTRAINT orders_item_id
+FOREIGN KEY (orders_info_item_id) REFERENCES items(item_id),
+ADD CONSTRAINT orders_order_id
+FOREIGN KEY (orders_info_id) REFERENCES orders(order_id);
+
+# 1
+
+SELECT order_id, item_name, firm_name, orders_info_quantity, item_price,
+       IF(type_id = 2, item_price * orders_info_quantity * 0.965, item_price * orders_info_quantity) AS cost
+FROM
+    orders
+JOIN orders_info  ON order_id = orders_info_id
+JOIN items ON orders_info_item_id = item_id
+JOIN firm_dov ON order_firm_id = firm_id
+JOIN types ON order_type = type_id
+
+WHERE MONTH(order_date) > 6 AND MONTH(order_date) < 10;
+
+# 2
+
+SELECT
+    firm_name,
+    COUNT(order_id) AS total_orders
+FROM
+    orders
+JOIN
+    firm_dov ON order_firm_id = firm_id
+GROUP BY
+    firm_name;
+
+#3
+
+SELECT DISTINCT item_id, item_name
+FROM items
+LEFT JOIN orders_info  ON item_id = orders_info_item_id
+LEFT JOIN orders  ON orders_info_id = order_id
+WHERE order_firm_id != (
+    SELECT firm_id
+    FROM firm_dov
+    WHERE firm_name = 'ТОV "Impression"'
+)
+OR order_firm_id IS NULL;
+
+
+
+
+
+
+

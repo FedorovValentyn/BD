@@ -1,0 +1,150 @@
+﻿/*ЕКЗАМЕНАЦІЙНИЙ БІЛЕТ № 6
+1. Команди зміни структури таблиці. Основні операції перетворення. Використання
+команди для перенумерации стовпців, що мають параметр AUTO_INCREMENT. (10
+балів)
+Зміна структури таблиці може бути здійснена за допомогою різних операцій перетворення, таких як додавання,
+видалення або зміна стовпців, зміна типу даних, додавання або видалення індексів тощо.
+Ось кілька основних команд для зміни структури таблиці:
+Додавання стовпця:
+ALTER TABLE table_name
+ADD column_name data_type;
+Видалення стовпця:
+ALTER TABLE table_name
+DROP COLUMN column_name;
+Зміна типу даних стовпця:
+ALTER TABLE table_name
+MODIFY COLUMN column_name new_data_type;
+Перейменування стовпця:
+ALTER TABLE table_name
+CHANGE old_column_name new_column_name data_type;
+Щоб змінити порядок стовпців, якщо один зі стовпців має параметр AUTO_INCREMENT, необхідно виконати кілька кроків:
+Додайте новий стовпець без параметра AUTO_INCREMENT:
+ALTER TABLE table_name
+ADD new_column INT NOT NULL;
+Оновіть новий стовпець, щоб відобразити значення зі старого стовпця:
+UPDATE table_name
+SET new_column = old_column;
+Змініть параметр AUTO_INCREMENT у новому стовпці на початкове значення:
+ALTER TABLE table_name
+CHANGE new_column new_column INT AUTO_INCREMENT;
+Видаліть старий стовпець:
+ALTER TABLE table_name
+DROP COLUMN old_column;
+
+
+2. Значення та синтаксис функції TO_DAYS(), приклад. (10 балів)
+Функція TO_DAYS() використовується для перетворення дати в числовий формат,
+представляючи дату як кількість днів з певної точки початку відліку. Ось синтаксис цієї функції:
+TO_DAYS(date)
+date - це дата або вираз дати, який ви хочете перетворити в числовий формат.
+Наприклад, якщо вам потрібно перетворити дату '2023-07-15' у числовий формат, ви можете використати TO_DAYS() так:
+SELECT TO_DAYS('2023-07-15');
+
+
+3. Практичне завдання (20 балів).
+Відповідно до виданих таблиць створити в MySQL базу даних.
+Створити до бази наступні запити:
+ запит про не сплачені замовлення товарів на 12.04.2004. Динамічний набір
+записів повинен містити такі поля: Номер замовлення, Назва дистріб'ютора,
+Адреса дистріб'ютора, Дата замовлення, Дата сплати.
+ груповий запит, що виводить загальну кількість товарів, у яких ціна більше
+за середню ціну всіх товарів.
+ перехресний запит, який би відтворювався наступною таблицею:
+Назва дистріб'ютора 2 квартал 3 квартал
+"August Gumplmayr" Загальна вартість Загальна вартість
+… … …
+"Cerdec ag" Загальна вартість Загальна вартість
+Вартість розраховуються як добуток ціни товару на кількість замовленого товару. Якщо
+назва країни дистріб'ютора Великобрітанія, то ціна збільшується на 4,5%, в іншому
+випадку - ціна залишається незмінною.*/
+
+CREATE DATABASE variant_6;
+
+USE variant_6;
+
+CREATE TABLE dist(
+    dist_id INT PRIMARY KEY,
+    dist_name VARCHAR(55),
+    dist_address VARCHAR(55),
+    dist_country VARCHAR(30)
+);
+
+CREATE TABLE orders(
+    order_id INT PRIMARY KEY,
+    order_dist_id INT,
+    order_date DATE,
+    order_payment_date DATE
+);
+
+CREATE TABLE items(
+    item_id INT PRIMARY KEY,
+    item_name VARCHAR(55),
+    item_price INT
+);
+
+CREATE TABLE contracts(
+    contract_uniq INT PRIMARY KEY AUTO_INCREMENT,
+    contract_order_id INT,
+    contract_item_id INT,
+    contract_quantity INT
+);
+
+ALTER TABLE orders
+ADD CONSTRAINT order_dist_id_fk
+FOREIGN KEY (order_dist_id) REFERENCES dist(dist_id);
+
+ALTER TABLE contracts
+ADD CONSTRAINT contract_order_id_fk
+FOREIGN KEY (contract_order_id) REFERENCES orders(order_id),
+ADD CONSTRAINT contract_item_id_fk
+FOREIGN KEY (contract_item_id) REFERENCES items(item_id);
+
+
+#1
+SELECT
+    order_id AS "Номер замовлення",
+    dist_name AS "Назва дистриб'ютора",
+    dist_address AS "Адреса дистриб'ютора",
+    order_date AS "Дата замовлення",
+    order_payment_date AS "Дата сплати"
+FROM
+    orders
+JOIN dist ON order_dist_id = dist_id
+WHERE
+    (order_payment_date IS NULL OR order_payment_date > '2004-04-12')
+    AND order_date <= '2004-04-12';
+
+#2 ????
+SELECT
+    item_name,
+    COUNT(item_id) AS item_count
+FROM items
+WHERE item_price > (SELECT AVG(item_price) FROM items)
+GROUP BY item_name;
+
+#3
+SELECT
+    dist_name AS distributor_name,
+    SUM(CASE
+        WHEN QUARTER(order_date) = 2 THEN
+            contract_quantity *
+            (CASE
+                WHEN dist_country = 'United Kingdom' THEN item_price * 1.045
+                ELSE item_price
+            END)
+        ELSE 0
+    END) AS Q2_total_value,
+    SUM(CASE
+        WHEN QUARTER(order_date) = 3 THEN
+            contract_quantity *
+            (CASE
+                WHEN dist_country = 'United Kingdom' THEN item_price * 1.045
+                ELSE item_price
+            END)
+        ELSE 0
+    END) AS Q3_total_value
+FROM dist
+JOIN orders ON dist_id = order_dist_id
+JOIN contracts ON order_id = contract_order_id
+JOIN items ON contract_item_id = item_id
+GROUP BY dist_name;

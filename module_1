@@ -1,0 +1,43 @@
+﻿CREATE DATABASE module1;
+USE module1;
+
+CREATE TABLE first(
+    first_uniq_id INT PRIMARY KEY AUTO_INCREMENT,
+    valute_id INT NOT NULL,
+    course_on_1_10 FLOAT,
+    course_on_1_11 FLOAT,
+    course_on_1_12 FLOAT,
+    year YEAR
+);
+
+CREATE TABLE second(
+    uniq_id INT PRIMARY KEY AUTO_INCREMENT,
+    second_valute_id INT NOT NULL,
+    valute_name CHAR(60)
+);
+
+
+ALTER TABLE second
+ADD CONSTRAINT uniq_val
+FOREIGN KEY (second_valute_id) REFERENCES first(valute_id);
+
+
+
+
+#1
+
+SELECT valute_id, valute_name, course_on_1_11,(course_on_1_11/course_on_1_10) AS "level on 1.11",
+       course_on_1_12, (course_on_1_12/ course_on_1_11) AS "level on 1.12", ((course_on_1_12/ course_on_1_11) / course_on_1_10) AS "3 months level"
+       FROM first
+       JOIN second ON valute_id = second_valute_id;
+
+
+#2
+SELECT valute_name AS "Currency Name",
+       AVG(course_on_1_10) AS "Avg Course on 1.10",
+       AVG(course_on_1_11) AS "Avg Course on 1.11",
+       AVG(course_on_1_12) AS "Avg Course on 1.12"
+FROM first
+JOIN second ON valute_id = second_valute_id
+WHERE year IN (2001, 2002)
+GROUP BY valute_name;

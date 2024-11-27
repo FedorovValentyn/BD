@@ -1,0 +1,151 @@
+﻿/*ЕКЗАМЕНАЦІЙНИЙ БІЛЕТ № 9
+1. Групові запити. Використання агрегуючих функцій для отримання підсумкових
+результатів з таблиць MySQL. (10 балів)
+
+  Групові запити дозволяють використовувати агрегуючі функції
+  для отримання підсумкових результатів для груп рядків у таблиці. Ось деякі агрегуючі функції та їх використання:
+1.	COUNT(): Ця функція рахує кількість рядків у групі.
+SELECT category, COUNT(*) AS count
+FROM products
+GROUP BY category;
+2.    SUM(): Ця функція обчислює суму значень у групі.
+SELECT category, SUM(price) AS total_price
+FROM products
+GROUP BY category;
+3.    AVG(): Ця функція обчислює середнє значення у групі.
+SELECT category, AVG(price) AS average_price
+FROM products
+GROUP BY category;
+4.    MIN() і MAX(): Ці функції знаходять мінімальне та максимальне значення у групі відповідно.
+SELECT category, MIN(price) AS min_price, MAX(price) AS max_price
+FROM products
+GROUP BY category;
+5.    GROUP BY: Використовується для групування рядків за певними стовпцями.
+SELECT city, COUNT(*) AS users_count
+FROM users
+GROUP BY city;
+6.    HAVING: Використовується для фільтрації результатів групового запиту.
+SELECT category, AVG(price) AS average_price
+FROM products
+GROUP BY category
+HAVING AVG(price) > 50;
+
+
+2. Значення та синтаксис функції CHAR_LENGTH(), приклад. (10 балів)
+
+  Функція CHAR_LENGTH() використовується для отримання кількості символів у рядку. Вона повертає кількість символів,
+  а не байтів, у вказаному рядку тексту. Ось синтаксис цієї функції:
+CHAR_LENGTH(string)
+Де:
+·       string - це рядок або значення, довжину якого ви хочете знайти.
+Наприклад, якщо вам потрібно знайти кількість символів у рядку 'Hello World':
+SELECT CHAR_LENGTH('Hello World');
+
+
+3. Практичне завдання (20 балів).
+Відповідно до виданих таблиць створити в MySQL базу даних.
+Створити до бази наступні запити:
+ запит про замовлення за другий квартал. Динамічний набір записів повинен
+містити такі поля: Номер замовлення, Найменування товару, Назва фірми,
+Кількість, Ціна, Вартість. Дані впорядкувати по алфавіту назв фірм, а в
+межах однієї групи – по назві товару.
+ груповий запит, що виводить загальну кількість замовлень для кожної
+фірми.
+ запит на зовнішнє об’єднання, який повинен містити дистріб'юторів, які не
+замовляли товари Calligaris.
+Вартість розраховуються як добуток ціни товару на кількість замовленого товару. Якщо
+назва країни дистріб'ютора Польща, то ціна зменшується на 4,5%, в іншому випадку - ціна
+залишається незмінною*/
+
+
+
+CREATE DATABASE variant_9;
+
+
+USE variant_9;
+
+
+CREATE TABLE dist(
+    dist_id INT PRIMARY KEY,
+    dist_name VARCHAR(55),
+    dist_address VARCHAR(60),
+    dist_country VARCHAR(55)
+);
+
+CREATE TABLE orders(
+    order_id INT PRIMARY KEY,
+    order_dist_id INT,
+    order_date DATE,
+    order_payment_date DATE
+);
+
+CREATE TABLE items(
+    item_id INT PRIMARY KEY,
+    item_name VARCHAR(55),
+    item_price INT
+);
+
+CREATE TABLE contracts(
+    contract_uniq INT PRIMARY KEY AUTO_INCREMENT,
+    contract_order_id INT,
+    contract_item_id INT,
+    contract_quantity INT
+);
+
+
+ALTER TABLE orders
+ADD CONSTRAINT order_dist_id_fk
+FOREIGN KEY (order_dist_id) REFERENCES dist(dist_id);
+
+ALTER TABLE contracts
+ADD CONSTRAINT contract_order_id_fk
+FOREIGN KEY (contract_order_id) REFERENCES orders(order_id),
+ADD CONSTRAINT contract_item_id_fk
+FOREIGN KEY (contract_item_id) REFERENCES items(item_id);
+
+#1
+SELECT
+    order_id AS "Номер замовлення",
+    item_name AS "Найменування товару",
+    dist_name AS "Назва фірми",
+    contract_quantity AS "Кількість",
+    item_price AS "Ціна",
+    IF(dist_country LIKE 'Poland', item_price * 0.955 * contract_quantity, item_price * contract_quantity ) AS "Вартість"
+FROM
+    orders
+JOIN contracts ON order_id = contract_order_id
+JOIN items ON contract_item_id = item_id
+JOIN dist ON order_dist_id = dist_id
+WHERE
+    QUARTER(order_date) = 2
+ORDER BY
+    dist_name, item_name;
+
+#2
+SELECT
+    dist_name AS "Назва фірми",
+    COUNT(order_id) AS "Загальна кількість замовлень"
+FROM
+    dist
+LEFT JOIN orders ON dist_id = order_dist_id
+GROUP BY
+    dist_name
+ORDER BY
+    dist_name;
+
+#3
+SELECT DISTINCT
+    dist_id AS "ID Дистриб'ютора",
+    dist_name AS "Назва Фірми",
+    dist_address AS "Адреса",
+    dist_country AS "Країна"
+FROM
+    dist
+WHERE
+    dist_id NOT IN (
+        SELECT DISTINCT order_dist_id
+        FROM orders
+        JOIN contracts ON order_id = contract_order_id
+        JOIN items ON contract_item_id = item_id
+        WHERE item_name LIKE '%Calligaris%'
+    );

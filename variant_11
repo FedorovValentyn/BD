@@ -1,0 +1,192 @@
+﻿/*
+ЕКЗАМЕНАЦІЙНИЙ БІЛЕТ № 11
+1. Проведення розрахунків в запитах на вибірку. Правила перетворення значень
+полів різних типі. (10 балів)
+
+В запитах на вибірку в базі даних MySQL можна використовувати різні математичні операції і функції для проведення розрахунків. Нижче наведені деякі приклади використання різних операцій та функцій для розрахунків значень полів різних типів:
+
+Арифметичні операції:
+Приклад додавання значень двох полів
+SELECT column1 + column2 AS sum_result
+FROM your_table;
+
+Віднімання
+SELECT column1 - column2 AS difference_result
+FROM your_table;
+
+Множення
+SELECT column1 * column2 AS multiplication_result
+FROM your_table;
+
+Ділення
+SELECT column1 / column2 AS division_result
+FROM your_table;
+
+Використання функцій:
+Використання функції SQRT() (корінь квадратний)
+SELECT SQRT(column1) AS square_root_result
+FROM your_table;
+
+Використання функції ABS() (модуль числа)
+SELECT ABS(column1) AS absolute_value_result
+FROM your_table;
+
+Використання функції ROUND() (округлення)
+SELECT ROUND(column1, 2) AS rounded_value
+FROM your_table;
+
+Використання функції POWER() (піднесення до ступеня)
+SELECT POWER(column1, 2) AS squared_result
+FROM your_table;
+
+Конкатенація рядків:
+Об'єднання значень рядків
+SELECT CONCAT(column1, ' ', column2) AS concatenated_result
+FROM your_table;
+
+
+2. Значення та синтаксис функції CONCAT_WS(), приклад. (10 балів)
+
+
+Функція CONCAT_WS() додає два або більше вирази разом із роздільником. Синтаксис:
+CONCAT_WS(separator, value_1, value_2,...,value_n)
+separator - символ який буде розділяти елементи.
+value_1, value_2,...,value_n - це елементи будь-якого типу даних, які потрібно об’єднати в одну строку.
+Приклад:
+SELECT CONCAT_WS("-", "SQL", "Tutorial", "is", "fun!") AS ConcatenatedString;
+Результат:
+SQL-Tutorial-is-fun!
+
+
+3. Практичне завдання (20 балів).
+Відповідно до виданих таблиць створити в MySQL базу даних.
+Створити до бази наступні запити:
+ запит про три найбільші по кількості постачання товарів EPSON або
+Samsung. Динамічний набір записів повинен містити такі поля: Номер
+контракту, Назва дистриб’ютора, Адреса дистриб’ютора, Кількість, Шифр.
+ груповий запит, що виводить загальну вартість товарів, у яких кількість
+менше за середню кількість по всім контрактам.
+ Створити перехресний запит, який би відтворювався наступною таблицею:
+Найменування товару Seiko EPSON
+Corporation …
+Samsung Brands
+Electronis
+Сканер HP Scanjet 2200c Загальна вартість … Загальна вартість
+… … … …
+Монітор 19" Samsung
+SyncMaster 957DFX
+Загальна вартість … Загальна вартість
+Вартість розраховуються як добуток ціни товару на кількість поставленого товару на
+коефіцієнт перерахунку. Якщо код валюти поставленого товару дорівнює 001, то
+коефіцієнт перерахунку дорівнює 7,45, в іншому випадку дорівнює 1.
+*/
+
+
+CREATE DATABASE variant_11;
+
+USE variant_11;
+
+CREATE TABLE items(
+    item_id INT PRIMARY KEY,
+    item_name VARCHAR(55),
+    item_type_code INT,
+    item_price INT,
+    item_valute_code VARCHAR(10)
+);
+
+CREATE TABLE dist(
+    dist_id INT PRIMARY KEY,
+    dist_name VARCHAR(55),
+    dist_address VARCHAR(55)
+);
+
+CREATE TABLE contracts(
+    contract_id INT PRIMARY KEY,
+    contract_dist_id INT,
+    contract_item_id INT,
+    contract_quantity INT
+);
+
+CREATE TABLE valute(
+    valute_id VARCHAR(3) PRIMARY KEY,
+    valute_name VARCHAR(55),
+    valute_short VARCHAR(3)
+);
+
+CREATE TABLE types(
+    type_code INT PRIMARY KEY,
+    type_name VARCHAR(55)
+);
+
+
+ALTER TABLE items
+ADD CONSTRAINT item_type_code_fk
+FOREIGN KEY (item_type_code) REFERENCES types(type_code),
+ADD CONSTRAINT item_valute_code_fk
+FOREIGN KEY (item_valute_code) REFERENCES valute(valute_id);
+
+ALTER TABLE contracts
+ADD CONSTRAINT contract_dist_code_fk
+FOREIGN KEY (contract_dist_id) REFERENCES dist(dist_id),
+ADD CONSTRAINT contracts_item_code_fk
+FOREIGN KEY (contract_item_id) REFERENCES items(item_id);
+
+#1
+SELECT
+    contract_id AS "Номер контракту",
+    dist_name AS "Назва дистриб'ютора",
+    dist_address AS "Адреса дистриб'ютора",
+    contract_quantity AS "Кількість",
+    valute_short AS "Шифр"
+FROM
+    contracts
+JOIN dist ON contract_dist_id = dist_id
+JOIN items ON contract_item_id = item_id
+JOIN valute ON item_valute_code = valute_id
+WHERE
+    item_name LIKE '%EPSON%' OR item_name LIKE '%Samsung%'
+ORDER BY
+    contract_quantity DESC
+LIMIT 3;
+
+
+#2
+SELECT
+    item_name AS "Назва товару",
+    SUM(IF(item_valute_code = 001, contract_quantity * item_price * 7.45, contract_quantity * item_price)) AS "Загальна вартість"
+FROM
+    contracts
+JOIN items ON contract_item_id = item_id
+WHERE
+    contract_quantity < (SELECT AVG(contract_quantity) FROM contracts)
+GROUP BY
+    item_name;
+
+#3
+
+
+SELECT
+    item_name AS "Найменування товару",
+    SUM( CASE WHEN item_name LIKE '%EPSON%' THEN contract_quantity * item_price *
+        CASE
+            WHEN item_valute_code = 1 THEN 7.45
+            ELSE 1
+        END
+    ELSE 0 END) AS "Seiko EPSON Corporation",
+    SUM(CASE WHEN item_name LIKE '%Samsung%' THEN contract_quantity * item_price *
+        CASE
+            WHEN item_valute_code = 1 THEN 7.45
+            ELSE 1
+        END
+    ELSE 0 END) AS "Samsung Brands Electronis",
+     SUM(CASE WHEN item_name LIKE '%HP%' THEN contract_quantity * item_price *
+        CASE
+            WHEN item_valute_code = 1 THEN 7.45
+            ELSE 1
+        END
+    ELSE 0 END) AS "Hewlett-Pacrard"
+FROM
+    contracts
+JOIN items ON contract_item_id = item_id
+GROUP BY
+    item_name;
