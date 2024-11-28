@@ -1,0 +1,206 @@
+﻿/*ЕКЗАМЕНАЦІЙНИЙ БІЛЕТ № 12
+1. Команди MySQL для організації вибірки записів з кількох таблиць. Типи
+об’єднань таблиць (перехресне об’єднання, внутрішнє, зовнішнє, повне). (10 балів)
+
+Вибірка з декількох таблиць
+SELECT name1, …, nameN
+FROM name_table1, name_table2, …
+WHERE nameNum>=Z1 AND|OR nameStr LIKE ‘%Z2%’
+AND id_ name_table1 = id_ name_table2;
+Приклад:
+SELECT id, name, address
+FROM firms, orders
+WHERE id >5 AND ad<15 OR address LIKE ‘%бульвар%’
+AND firms.id_firm = orders.id_firm;
+
+Об’єднання запитів
+select …
+UNION
+select …
+Приклад:
+select *
+from avto
+where price_opt=(select max(price_opt) from avto)
+union
+select *
+from avto
+where price_opt=(select min(price_opt) from avto);
+
+Об’єднання таблиці сама з собою
+SELECT L.name,R.name
+FROM Customers L, Customers R
+WHERE L.rating = R.rating;
+Приклад:
+SELECT L.id, R.id
+FROM Klient L, Klient R
+WHERE L.tel = R.tel;
+
+Об’єднання таблиці сама з собою без повторень
+SELECT L.name,R.name
+FROM Customers L, Customers R
+WHERE L.rating = R.rating AND L.name<R.name;
+Приклад:
+SELECT L.id, R.id
+FROM Klient L, Klient R
+WHERE L.tel = R.tel AND L. id <R. id;
+
+Запит з оператором INNER JOIN призначений для об'єднання таблиць та виведення результату,
+в якому дані повністю перетинаються за умовою, вказаною після ON.
+
+SELECT Parts.Part, Categories.Catnumb AS Cat, Categories.Price
+FROM Parts INNER JOIN Categories
+ON Parts.Cat = Categories.Catnumb;
+
+Запит з оператором LEFT OUTER JOIN призначений для об'єднання таблиць та виведення результату,
+в якому дані повністю перетинаються за умовою, вказаною після ON, і доповнюються записами з
+першої (лівої) таблиці, навіть якщо вони не відповідають умові. Для записів лівої таблиці, які не
+відповідають умові, значення стовпця з правої таблиці буде NULL.
+
+SELECT Parts.Part, Categories.Catnumb AS Cat, Categories.Price
+FROM Parts LEFT OUTER JOIN Categories
+ON Parts.Cat = Categories.Catnumb;
+
+Запит з оператором RIGHT OUTER JOIN призначений для об'єднання таблиць та виведення результату,
+в якому дані повністю перетинаються за умовою, вказаною після ON, і доповнюються записами з другої (правої)
+таблиці, навіть якщо вони не відповідають умові. Для записів правої таблиці, які не відповідають умові,
+значення стовпця з лівої таблиці буде NULL.
+
+SELECT Parts.Part, Categories.Catnumb AS Cat, Categories.Price
+FROM Parts RIGHT OUTER JOIN Categories
+ON Parts.Cat = Categories.Catnumb;
+
+Запит з оператором FULL OUTER JOIN призначений для об'єднання таблиць та виведення результату,
+в якому дані повністю перетинаються за умовою, вказаною після ON, і доповнюються записами з першої
+(лівої) та другої (правої) таблиць, навіть якщо вони не відповідають умові. Для записів,
+які не відповідають умові, значення стовпців з іншої таблиці буде NULL.
+
+SELECT Parts.Part, Categories.Catnumb AS Cat, Categories.Price
+FROM Parts FULL OUTER JOIN Categories
+ON Parts.Cat = Categories.Catnumb;
+
+Використання оператора SQL CROSS JOIN у найпростішій формі - без умови об'єднання - реалізує операцію
+декартового добутку в реляційній алгебрі. Результатом такого об'єднання буде скріплення кожного рядка
+першої таблиці з кожним рядком другої таблиці.
+
+SELECT * FROM Categories CROSS JOIN Parts;
+Або
+SELECT * FROM Categories, Parts;
+
+
+
+2. Значення та синтаксис функції RAND(), приклад. (10 балів)
+
+Функція RAND() повертає випадкове число від 0 (включно) до 1 (виключно). Синтаксис:
+RAND(seed)
+seed - якщо вказано зерно, функція повертає повторювану послідовність випадкових чисел.
+Якщо зерно не вказано, то повертається абсолютно випадкове число.
+Приклад:
+SELECT rand(5), rand(), rand(5), rand(5), rand();
+Результат:
+0.40613597483014313
+0.9710375852613129
+0.40613597483014313
+0.40613597483014313
+0.7419555473532113
+
+
+3. Практичне завдання (20 балів).
+Відповідно до виданих таблиць створити в MySQL базу даних.
+Створити до бази наступні запити:
+ запит про замовлення за другий квартал. Динамічний набір записів повинен
+містити такі поля: Номер замовлення, Найменування товару, Назва фірми,
+Кількість, Ціна, Вартість. Дані впорядкувати по алфавіту назв фірм, а в
+межах однієї групи – по назві товару.
+ груповий запит, що виводить загальну кількість контрактів для кожної
+фірми.
+ запит на зовнішнє об’єднання, який повинен містити дистріб'юторів, які не
+замовляли товари Samsung.
+Вартість розраховуються як добуток ціни товару на кількість замовленого товару. Якщо
+назва країни дистріб'ютора США, то ціна збільшується на 4,5%, в іншому випадку - ціна
+залишається незмінною*/
+
+
+CREATE DATABASE variant_12;
+
+USE variant_12;
+
+CREATE TABLE dist(
+    dist_id INT PRIMARY KEY,
+    dist_name VARCHAR(55),
+    dist_address VARCHAR(80),
+    dist_country VARCHAR(55)
+);
+
+CREATE TABLE orders(
+    order_id INT PRIMARY KEY,
+    order_dist_id INT,
+    order_date DATE,
+    order_paymnet_date DATE
+);
+
+CREATE TABLE items(
+    item_id INT PRIMARY KEY,
+    item_name VARCHAR(55),
+    item_price INT
+);
+
+CREATE TABLE contracts(
+    contract_uniq INT PRIMARY KEY AUTO_INCREMENT,
+    contract_order_id INT,
+    contract_item_id INT,
+    contract_quantity INT
+);
+
+
+ALTER TABLE orders
+ADD CONSTRAINT orders_dist_id_fk
+FOREIGN KEY (order_dist_id) REFERENCES dist(dist_id);
+
+ALTER TABLE contracts
+ADD CONSTRAINT contracts_order_id_fk
+FOREIGN KEY (contract_order_id) REFERENCES orders(order_id),
+ADD CONSTRAINT contracts_item_id
+FOREIGN KEY (contract_item_id) REFERENCES items(item_id);
+
+
+
+#1
+SELECT
+    order_id AS "Номер замовлення",
+    item_name AS "Найменування товару",
+    dist_name AS "Назва фірми",
+    contract_quantity AS "Кількість",
+    item_price as "Ціна",
+    (IF(dist_country LIKE 'USA', item_price * contract_quantity * 1.045,item_price * contract_quantity)) AS "Вартість"
+
+FROM contracts
+JOIN orders ON contract_order_id = order_id
+JOIN items ON contract_item_id = item_id
+JOIN dist ON order_dist_id = dist_id
+WHERE QUARTER(order_date) = 2
+ORDER BY dist_name ASC, item_name ASC;
+
+#2
+SELECT
+    dist_name AS "Назва фірми",
+    COUNT(contract_order_id) AS "Кількість контрактів"
+FROM
+    contracts
+JOIN orders ON contract_order_id = order_id
+JOIN dist ON order_dist_id = dist_id
+GROUP BY dist_name
+ORDER BY dist_name ASC;
+
+#3
+SELECT DISTINCT
+    dist_name AS "Назва дистриб'ютора"
+FROM
+    dist
+WHERE
+    dist_id NOT IN (
+        SELECT order_dist_id
+        FROM orders
+        JOIN contracts ON orders.order_id = contracts.contract_order_id
+        JOIN items ON contracts.contract_item_id = items.item_id
+        WHERE item_name LIKE '%Samsung%'
+    );

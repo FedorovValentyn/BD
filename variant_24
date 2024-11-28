@@ -1,0 +1,168 @@
+﻿/*ЕКЗАМЕНАЦІЙНИЙ БІЛЕТ № 24
+1. Особливості таблиць типу MyISAM. Повнотекстні індекси. (10 балів)
+
+Таблиці типу MyISAM є одним з двох основних типів таблиць в MySQL, інший - InnoDB.
+Основні особливості таблиць MyISAM включають:
+Блокування на рівні таблиці: MyISAM використовує блокування на рівні таблиць під
+час виконання запитів. Це означає, що, якщо один користувач вносить зміни в таблицю,
+інші користувачі не можуть вставляти, оновлювати чи видаляти дані в цій таблиці до завершення операції.
+Відсутність транзакцій: MyISAM не підтримує транзакції, тобто ви не можете використовувати
+COMMIT або ROLLBACK для керування транзакціями.
+Зберігання даних та індексів в окремих файлах: Кожна таблиця MyISAM має
+три файли - .frm (структура таблиці), .MYD (дані) та .MYI (індекси).
+Підтримка повнотекстових індексів: MyISAM підтримує повнотекстові індекси,
+що дозволяють виконувати повнотекстовий пошук в текстових полях. Пошук за ключовими словами та фразами стає більш ефективним.
+
+Також можна додати такі нововведення:
+Прапорець у файлі MyISAM, що вказує, чи була таблиця закрита правильно чи ні.
+Вставка у середину файлу даних. За допомогою команди INSERT можна вставляти нові рядки в
+таблицю, в середині якої немає вільних блоків, під час читання іншими потоками інформації з таблиці (суміщена вставка).
+Підтримка великих файлів (63 біти) в файлових/операційних системах, які підтримують великі файли.
+Зберігання всіх даних з першим меншим байтом. Це робить дані незалежними від операційної системи.
+Всі ключі номерів зберігаються з першим старшим байтом. Це робить стиснення індексів більш ефективним.
+Внутрішнє оброблення стовпця AUTO_INCREMENT. MyISAM автоматично оновлює його при виконанні команд INSERT/UPDATE.
+При вставці в відсортованому порядку (як при використанні стовпця AUTO_INCREMENT) дерево ключів
+буде розділено так, щоб верхній вузол містив лише один ключ.
+Стовпці BLOB і TEXT можуть бути проіндексовані.
+У індексних стовпцях дозволені значення NULL. Вони займають 0-1 байт на ключ.
+Максимальна довжина ключа за замовчуванням - 500 байтів. Це значення може бути змінено
+при повторній компіляції.
+Максимальна кількість ключів за замовчуванням - 32. Це значення можна збільшити до 64 без повторної компіляції myisamchk.
+myisamchk відмічатиме таблиці як перевірені, якщо вони використовуються з параметром --update-state. myisamchk --fast буде
+перевіряти тільки ті таблиці, в яких це позначено.
+myisamchk -a зберігатиме статистичні дані по частинах ключа. Це відрізняється від ISAM, де зберігалися
+тільки статистичні дані для цілих ключів.
+Рядки з динамічним розміром будуть менше фрагментованими. Це досягається автоматичним об'єднанням сусідніх блоків,
+що були видалені, та розширенням блоків, якщо слідуючий блок видалено.
+myisampack може упаковувати стовпці BLOB і VARCHAR.
+Можливість розташування файлу даних та файлу індексів в різних каталогах для підвищення швидкодії
+(з параметром DATA/INDEX DIRECTORY="шлях" для CREATE TABLE).
+
+Повнотекстові індекси в MySQL позначаються як тип "FULLTEXT" і можуть бути використані для стовпців типів
+"VARCHAR" та "TEXT". При масовому додаванні даних до таблиці зі стовпцями "FULLTEXT", індекс буде створений
+одразу, що може уповільнити роботу. Для уникнення цього ефекту рекомендується модернізувати поля після додавання даних.
+Пошук виконується за допомогою функцій MATCH() та AGAINST(): Наприклад:
+SELECT * FROM mytable WHERE MATCH(column1, column2) AGAINST ('search term');
+
+
+2. Значення та синтаксис функції CHAR_LENGTH(), приклад. (10 балів)
+
+Функція CHAR_LENGTH() використовується для отримання кількості символів у рядку.
+Вона повертає кількість символів, а не байтів, у вказаному рядку тексту. Ось синтаксис цієї функції:
+CHAR_LENGTH(string)
+Де:
+·       string - це рядок або значення, довжину якого ви хочете знайти.
+Наприклад, якщо вам потрібно знайти кількість символів у рядку 'Hello World':
+SELECT CHAR_LENGTH('Hello World');
+
+
+3. Практичне завдання (20 балів).
+Відповідно до виданих таблиць створити в MySQL базу даних.
+Створити до бази наступні запити:
+ запит про не сплачені замовлення товарів на 12.04.2004. Динамічний набір
+записів повинен містити такі поля: Номер замовлення, Назва дистріб'ютора,
+Адреса дистріб'ютора, Дата замовлення, Дата сплати.
+ груповий запит, що виводить загальну кількість товарів, у яких ціна більше
+за середню ціну всіх товарів.
+ перехресний запит, який би відтворювався наступною таблицею:
+Назва дистріб'ютора 2 квартал 3 квартал
+"August Gumplmayr" Загальна вартість Загальна вартість
+… … …
+"Cerdec ag" Загальна вартість Загальна вартість
+Вартість розраховуються як добуток ціни товару на кількість замовленого товару. Якщо
+назва країни дистріб'ютора Великобрітанія, то ціна збільшується на 4,5%, в іншому
+випадку - ціна залишається незмінною*/
+
+
+CREATE DATABASE variant_24;
+
+USE variant_24;
+
+CREATE TABLE dist(
+    dist_id INT PRIMARY KEY,
+    dist_name VARCHAR(55),
+    dist_address VARCHAR(55),
+    dist_country VARCHAR(30)
+);
+
+CREATE TABLE orders(
+    order_id INT PRIMARY KEY,
+    order_dist_id INT,
+    order_date DATE,
+    order_payment_date DATE
+);
+
+CREATE TABLE items(
+    item_id INT PRIMARY KEY,
+    item_name VARCHAR(55),
+    item_price INT
+);
+
+CREATE TABLE contracts(
+    contract_uniq INT PRIMARY KEY AUTO_INCREMENT,
+    contract_order_id INT,
+    contract_item_id INT,
+    contract_quantity INT
+);
+
+ALTER TABLE orders
+ADD CONSTRAINT order_dist_id_fk
+FOREIGN KEY (order_dist_id) REFERENCES dist(dist_id);
+
+ALTER TABLE contracts
+ADD CONSTRAINT contract_order_id_fk
+FOREIGN KEY (contract_order_id) REFERENCES orders(order_id),
+ADD CONSTRAINT contract_item_id_fk
+FOREIGN KEY (contract_item_id) REFERENCES items(item_id);
+
+
+#1
+SELECT
+    order_id AS "Номер замовлення",
+    dist_name AS "Назва дистриб'ютора",
+    dist_address AS "Адреса дистриб'ютора",
+    order_date AS "Дата замовлення",
+    order_payment_date AS "Дата сплати"
+FROM
+    orders
+JOIN dist ON order_dist_id = dist_id
+WHERE
+    (order_payment_date IS NULL OR order_payment_date > '2004-04-12')
+    AND order_date <= '2004-04-12';
+
+#2
+SELECT
+    item_name,
+    COUNT(contract_quantity) AS item_count
+FROM contracts
+JOIN items ON contract_item_id = item_id
+WHERE item_price > (SELECT AVG(item_price) FROM items)
+GROUP BY item_name;
+
+
+#3
+SELECT
+    dist_name AS distributor_name,
+    SUM(CASE
+        WHEN QUARTER(order_date) = 2 THEN
+            contract_quantity *
+            (CASE
+                WHEN dist_country = 'United Kingdom' THEN item_price * 1.045
+                ELSE item_price
+            END)
+        ELSE 0
+    END) AS Q2_total_value,
+    SUM(CASE
+        WHEN QUARTER(order_date) = 3 THEN
+            contract_quantity *
+            (CASE
+                WHEN dist_country = 'United Kingdom' THEN item_price * 1.045
+                ELSE item_price
+            END)
+        ELSE 0
+    END) AS Q3_total_value
+FROM dist
+JOIN orders ON dist_id = order_dist_id
+JOIN contracts ON order_id = contract_order_id
+JOIN items ON contract_item_id = item_id
+GROUP BY dist_name;

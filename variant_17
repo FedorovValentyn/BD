@@ -1,0 +1,167 @@
+﻿/*ЕКЗАМЕНАЦІЙНИЙ БІЛЕТ № 17
+1. Поняття транзакції. Типи таблиць, які підтримують транзакції, їх переваги перед
+безтранзакціоннимі типами. (10 балів)
+
+Транзакція є робочою одиницею роботи з базою даних. Це послідовність операцій,
+виконуваних в логічному порядку користувачем або програмою, яка працює з БД.
+
+Ми можемо сказати, що транзакція – це поширення змін в БД. Наприклад, якщо ми створюємо,
+змінюємо або видаляємо запис, ми виконуємо транзакцію. Контроль транзакцій вкрай важливий для гарантії.
+
+Основні концепції транзакції описуються абревіатурою ACID – Atomicity, Consistency,
+Isolation, Durability (Атомарність, Согласованність, Ізоляція, Довговічність).
+
+Атомарність
+Гарантує, що будь-яка транзакція буде зафіксована лише цілком. Якщо одна з операцій
+в послідовності не виконається, то вся транзакція буде скасована.
+
+Согласованність
+Завершена транзакція фіксує лише припустимі результати. Наприклад, при переказі
+грошей з одного рахунку на інший, гроші повинні з'явитися на одному та зникнути на іншому рахунку.
+
+Ізоляція
+Кожна транзакція повинна бути ізольована від інших, тобто її результат не повинен
+залежати від виконання інших паралельних транзакцій.
+
+Довговічність
+Гарантує, що якщо ми отримали підтвердження виконання транзакції, зміни, викликані
+цією транзакцією, не повинні бути скасовані через збій системи.
+
+Управління транзакціями:
+COMMIT: Зберігає зміни.
+ROLLBACK: Скасовує зміни.
+SAVEPOINT: Створює точку, до якої група транзакцій може повернутися.
+SET TRANSACTION: Визначає ім'я транзакції.
+
+Команди управління транзакціями використовуються лише для DML команд:
+INSERT, UPDATE, DELETE і не можуть бути використані під час створення, зміни або видалення таблиці.
+
+MySQL підтримує два різних типи таблиць: транзакційні (InnoDB та BDB) і ті,
+що не підтримують транзакції (HEAP, ISAM, MERGE та MyISAM).
+
+Переваги таблиць без підтримки транзакцій (NTST):
+З їх використанням можливо працювати значно швидше, оскільки не виконуються додаткові транзакції.
+Для них потрібно менше дискового простору, оскільки не застосовуються додаткові транзакції.
+Для оновлень використовується менше оперативної пам'яті.
+
+
+2. Значення та синтаксис функції DATEDIFF(), приклад. (10 балів)
+
+Функція DATEDIFF() використовується для обчислення різниці між двома датами.
+Вона повертає ціле число, що відображає кількість днів між датами. Ось синтаксис цієї функції:
+DATEDIFF(date1, date2)
+date1 та date2 – дати чи дати та час, між якими ви хочете обчислити різницю.
+Наприклад, якщо вам потрібно знайти різницю в днях між двома конкретними датами, ви можете використати DATEDIFF() так:
+SELECT DATEDIFF('2023-12-31', '2023-01-01');
+
+
+3. Практичне завдання (20 балів).
+Відповідно до виданих таблиць створити в MySQL базу даних.
+Створити до бази наступні запити:
+ запит про три найбільші по кількості постачання товарів Koryna або
+Вікторія. Динамічний набір записів повинен містити такі поля: Номер
+контракту, Назва дистриб’ютора, Адреса дистриб’ютора, Кількість, Шифр.
+ груповий запит, що виводить загальну вартість товарів, у яких кількість
+менше за середню кількість по всім контрактам.
+ перехресний запит, який би відтворювався наступною таблицею:
+Найменування товару "Christina" … "Arba-Pelli"
+Стінка Вікторія Загальна вартість … Загальна вартість
+… … … …
+Кухні ДСП, МДФ
+Calligaris
+Загальна вартість … Загальна вартість
+Вартість розраховуються як добуток ціни товару на кількість поставленого товару на
+коефіцієнт перерахунку. Якщо код валюти поставленого товару дорівнює 001, то
+коефіцієнт перерахунку дорівнює 7,45, в іншому випадку дорівнює 1.*/
+
+
+CREATE DATABASE variant_17;
+
+USE variant_17;
+
+CREATE TABLE items(
+    item_id INT PRIMARY KEY,
+    item_name VARCHAR(55),
+    item_type_id INT,
+    item_price INT,
+    item_valute_id VARCHAR(3)
+);
+
+CREATE TABLE dist(
+    dist_id INT PRIMARY KEY,
+    dist_name VARCHAR(55),
+    dist_address VARCHAR(60)
+);
+
+CREATE TABLE contracts(
+    contract_id INT PRIMARY KEY,
+    contract_dist_id INT,
+    contract_item_id INT,
+    contract_quantity INT
+);
+
+CREATE TABLE valute(
+    valute_id VARCHAR(3) PRIMARY KEY,
+    valute_name VARCHAR(55),
+    valute_short VARCHAR(3)
+);
+
+CREATE TABLE types(
+    type_id INT PRIMARY KEY,
+    type_name VARCHAR(55)
+);
+
+ALTER TABLE items
+ADD CONSTRAINT item_type_id_fk
+FOREIGN KEY (item_type_id) REFERENCES types(type_id),
+ADD CONSTRAINT item_valute_id_fk
+FOREIGN KEY (item_valute_id) REFERENCES valute(valute_id);
+
+ALTER TABLE contracts
+ADD CONSTRAINT contract_dist_id_fk
+FOREIGN KEY (contract_dist_id) REFERENCES dist(dist_id),
+ADD CONSTRAINT contract_item_id_fk
+FOREIGN KEY (contract_item_id) REFERENCES items(item_id);
+
+#1
+SELECT
+    contract_id AS "Номер контракту",
+    dist_name AS "Назва дистриб’ютора",
+    dist_address AS "Адреса дистриб’ютора",
+    contract_quantity AS "Кількість",
+    valute_short AS "Шифр"
+FROM contracts
+JOIN dist ON contract_dist_id = dist_id
+JOIN items ON contract_item_id = item_id
+JOIN valute ON item_valute_id  = valute_id
+WHERE item_name LIKE 'Koryna' OR item_name LIKE 'Viktorija'
+ORDER BY contract_quantity DESC
+LIMIT 3;
+
+#2
+SELECT
+    item_name AS "Назва",
+    SUM(
+        IF(item_valute_id = '001', contract_quantity * item_price * 7.45, contract_quantity * item_price)
+        ) AS "Загальна вартість"
+FROM contracts
+JOIN items ON contract_item_id = item_id
+WHERE contract_quantity < (SELECT AVG(contract_quantity) FROM contracts)
+GROUP BY item_name;
+
+#3
+SELECT
+    item_name AS "Найменування товару",
+    SUM(CASE WHEN dist_name = '"Christina"'
+             THEN IF(item_valute_id = '001', contract_quantity * item_price * 7.45, contract_quantity * item_price)
+             ELSE 0 END) AS "Вікторія",
+    SUM(CASE WHEN dist_name = '"Darie S.R.O"'
+             THEN IF(item_valute_id = '001', contract_quantity * item_price * 7.45, contract_quantity * item_price)
+             ELSE 0 END) AS "Christina",
+    SUM(CASE WHEN dist_name = '"Arba-Pelli"'
+             THEN IF(item_valute_id = '001', contract_quantity * item_price * 7.45, contract_quantity * item_price)
+             ELSE 0 END) AS "Arba-Pelli"
+FROM contracts
+JOIN items ON contract_item_id = item_id
+JOIN dist ON contract_dist_id = dist_id
+GROUP BY item_name;

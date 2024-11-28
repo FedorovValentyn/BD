@@ -1,44 +1,29 @@
-﻿/*ЕКЗАМЕНАЦІЙНИЙ БІЛЕТ № 6
-1. Команди зміни структури таблиці. Основні операції перетворення. Використання
-команди для перенумерации стовпців, що мають параметр AUTO_INCREMENT. (10
-балів)
-Зміна структури таблиці може бути здійснена за допомогою різних операцій перетворення, таких як додавання,
-видалення або зміна стовпців, зміна типу даних, додавання або видалення індексів тощо.
-Ось кілька основних команд для зміни структури таблиці:
-Додавання стовпця:
-ALTER TABLE table_name
-ADD column_name data_type;
-Видалення стовпця:
-ALTER TABLE table_name
-DROP COLUMN column_name;
-Зміна типу даних стовпця:
-ALTER TABLE table_name
-MODIFY COLUMN column_name new_data_type;
-Перейменування стовпця:
-ALTER TABLE table_name
-CHANGE old_column_name new_column_name data_type;
-Щоб змінити порядок стовпців, якщо один зі стовпців має параметр AUTO_INCREMENT, необхідно виконати кілька кроків:
-Додайте новий стовпець без параметра AUTO_INCREMENT:
-ALTER TABLE table_name
-ADD new_column INT NOT NULL;
-Оновіть новий стовпець, щоб відобразити значення зі старого стовпця:
+﻿/*ЕКЗАМЕНАЦІЙНИЙ БІЛЕТ № 15
+1. Запити на модифікацію записів (delete, update insert) в таблиці MySQL. (10 балів)
+
+INSERT [INTO] table_name [(columns_list)] VALUES (value_1, value_2, ... value_n)
+INSERT Products (ProductName, Manufacturer, ProductCount, Price)
+VALUES ('iPhone X', 'Apple', 5, 76000);
 UPDATE table_name
-SET new_column = old_column;
-Змініть параметр AUTO_INCREMENT у новому стовпці на початкове значення:
-ALTER TABLE table_name
-CHANGE new_column new_column INT AUTO_INCREMENT;
-Видаліть старий стовпець:
-ALTER TABLE table_name
-DROP COLUMN old_column;
+SET column_1 = value_1, column_2 = value_2, ... column_n = value_n
+[WHERE update_condition]
+UPDATE Products
+SET Manufacturer = 'Samsung',
+ProductCount = ProductCount + 3
+WHERE Manufacturer = 'Samsung Inc.';
+DELETE FROM table_name
+[WHERE delete_condition]
+DELETE FROM Products
+WHERE Manufacturer='Huawei';
 
 
-2. Значення та синтаксис функції TO_DAYS(), приклад. (10 балів)
-Функція TO_DAYS() використовується для перетворення дати в числовий формат,
-представляючи дату як кількість днів з певної точки початку відліку. Ось синтаксис цієї функції:
-TO_DAYS(date)
-date - це дата або вираз дати, який ви хочете перетворити в числовий формат.
-Наприклад, якщо вам потрібно перетворити дату '2023-07-15' у числовий формат, ви можете використати TO_DAYS() так:
-SELECT TO_DAYS('2023-07-15');
+2. Значення та синтаксис функції SUBSTRING(), приклад. (10 балів)
+
+Функція SUBSTRING() витягує підстроку з рядка, починаючи з вказаної позиції. У MySQL вона може бути використана у двох форматах:
+SUBSTRING('<Строка>', < Позиція>, [< Довжина>])
+Наприклад: `SUBSTRING('Привіт світ', 7, 4)` витягне "світ" з рядка "Привіт світ".
+SUBSTRING('<Строка>' FROM < Позиція> FOR [< Довжина>])
+Наприклад: `SUBSTRING('Привіт світ' FROM 7 FOR 4)` також витягне "світ".
 
 
 3. Практичне завдання (20 балів).
@@ -56,11 +41,11 @@ SELECT TO_DAYS('2023-07-15');
 "Cerdec ag" Загальна вартість Загальна вартість
 Вартість розраховуються як добуток ціни товару на кількість замовленого товару. Якщо
 назва країни дистріб'ютора Великобрітанія, то ціна збільшується на 4,5%, в іншому
-випадку - ціна залишається незмінною.*/
+випадку - ціна залишається незмінною*/
 
-CREATE DATABASE variant_6;
+CREATE DATABASE variant_15;
 
-USE variant_6;
+USE variant_15;
 
 CREATE TABLE dist(
     dist_id INT PRIMARY KEY,

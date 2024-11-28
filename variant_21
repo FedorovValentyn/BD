@@ -1,0 +1,144 @@
+﻿/*ЕКЗАМЕНАЦІЙНИЙ БІЛЕТ № 21
+1. Поняття ключів в таблицях. Правила встановлення ключів в таблицях. (10 балів)
+
+В теорії реляційних баз даних, ключі - це сутності, створені для встановлення певних обмежень,
+які підтримують цілісність та доступність даних в таблицях баз даних.
+
+Первинний ключ (Primary Key).
+Це стовбець, який має бути унікальним в базі даних. Його використовують для однозначної
+ідентифікації записів у таблиці. Наприклад, якщо у нас є таблиця користувачів, то можна
+використовувати поле "ID" як первинний ключ, щоб гарантувати унікальність значень та однозначно ідентифікувати кожного користувача.
+
+Зовнішній ключ (Foreign Key).
+Використовується для зв'язування таблиць між собою. Зовнішній ключ вказує на зв'язок між стовбцем
+в одній таблиці та первинним ключем в іншій. Це допомагає у визначенні відносин між різними частинами бази даних.
+
+Складений ключ (Composite Key).
+Складений ключ включає кілька первинних ключів у таблиці. Це означає, що унікальність запису перевіряється за
+кількома полями, об'єднаними в цей ключ. Складений ключ використовується, коли потрібно перевірити унікальність запису
+зараз же за кількома полями при вставці в таблицю.
+
+Простими словами, ключі в SQL призначені для додаткового налаштування функціональності стовбців, вказуючи на
+унікальність або на те, що стовбець посилається на іншу таблицю (зовнішній ключ).
+
+
+2. Значення та синтаксис функції CASE(), приклад. (10 балів)
+
+Функція CASE використовується для реалізації умовної логіки, де можна визначати різні дії
+в залежності від умови. Синтаксис CASE виглядає так:
+CASE
+WHEN condition1 THEN result1
+WHEN condition2 THEN result2
+...
+ELSE else_result
+END
+Наприклад, якщо ми хочемо створити новий стовпець status на основі значення стовпця points у таблиці users:
+SELECT CASE
+WHEN points > 100 THEN 'Gold'
+WHEN points > 50 THEN 'Silver'
+ELSE 'Bronze'
+END AS status FROM users;
+
+
+3. Практичне завдання (20 балів).
+Відповідно до виданих таблиць створити в MySQL базу даних.
+Створити до бази наступні запити:
+ запит про замовлення за другий квартал. Динамічний набір записів повинен
+містити такі поля: Номер замовлення, Найменування товару, Назва фірми,
+Кількість, Ціна, Вартість. Дані впорядкувати по алфавіту назв фірм, а в
+межах однієї групи – по назві товару.
+ груповий запит, що виводить загальну кількість контрактів для кожної
+фірми.
+ запит на зовнішнє об’єднання, який повинен містити дистріб'юторів, які не
+замовляли товари Samsung.
+Вартість розраховуються як добуток ціни товару на кількість замовленого товару. Якщо
+назва країни дистріб'ютора США, то ціна збільшується на 4,5%, в іншому випадку - ціна
+залишається незмінною.
+*/
+
+
+
+CREATE DATABASE variant_21;
+
+USE variant_21;
+
+CREATE TABLE dist(
+    dist_id INT PRIMARY KEY,
+    dist_name VARCHAR(55),
+    dist_address VARCHAR(80),
+    dist_country VARCHAR(55)
+);
+
+CREATE TABLE orders(
+    order_id INT PRIMARY KEY,
+    order_dist_id INT,
+    order_date DATE,
+    order_paymnet_date DATE
+);
+
+CREATE TABLE items(
+    item_id INT PRIMARY KEY,
+    item_name VARCHAR(55),
+    item_price INT
+);
+
+CREATE TABLE contracts(
+    contract_uniq INT PRIMARY KEY AUTO_INCREMENT,
+    contract_order_id INT,
+    contract_item_id INT,
+    contract_quantity INT
+);
+
+
+ALTER TABLE orders
+ADD CONSTRAINT orders_dist_id_fk
+FOREIGN KEY (order_dist_id) REFERENCES dist(dist_id);
+
+ALTER TABLE contracts
+ADD CONSTRAINT contracts_order_id_fk
+FOREIGN KEY (contract_order_id) REFERENCES orders(order_id),
+ADD CONSTRAINT contracts_item_id
+FOREIGN KEY (contract_item_id) REFERENCES items(item_id);
+
+
+
+#1
+SELECT
+    order_id AS "Номер замовлення",
+    item_name AS "Найменування товару",
+    dist_name AS "Назва фірми",
+    contract_quantity AS "Кількість",
+    item_price as "Ціна",
+    (IF(dist_country LIKE 'USA', item_price * contract_quantity * 1.045,item_price * contract_quantity)) AS "Вартість"
+
+FROM contracts
+JOIN orders ON contract_order_id = order_id
+JOIN items ON contract_item_id = item_id
+JOIN dist ON order_dist_id = dist_id
+WHERE QUARTER(order_date) = 2
+ORDER BY dist_name ASC, item_name ASC;
+
+#2
+SELECT
+    dist_name AS "Назва фірми",
+    COUNT(contract_order_id) AS "Кількість контрактів"
+FROM
+    contracts
+JOIN orders ON contract_order_id = order_id
+JOIN dist ON order_dist_id = dist_id
+GROUP BY dist_name
+ORDER BY dist_name ASC;
+
+#3
+SELECT DISTINCT
+    dist_name AS "Назва дистриб'ютора"
+FROM
+    dist
+WHERE
+    dist_id NOT IN (
+        SELECT order_dist_id
+        FROM orders
+        JOIN contracts ON order_id = contract_order_id
+        JOIN items ON contract_item_id = item_id
+        WHERE item_name LIKE '%Samsung%'
+    );

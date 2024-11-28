@@ -1,0 +1,166 @@
+﻿/*ЕКЗАМЕНАЦІЙНИЙ БІЛЕТ № 18
+1. Поняття транзакції. Типи таблиць, які не підтримують транзакції. Їх переваги
+перед транзакційними типами. (10 балів)
+
+Транзакція є робочою одиницею роботи з базою даних. Це послідовність операцій,
+виконуваних в логічному порядку користувачем або програмою, яка працює з БД.
+
+Ми можемо сказати, що транзакція – це поширення змін в БД. Наприклад, якщо ми створюємо,
+змінюємо або видаляємо запис, ми виконуємо транзакцію. Контроль транзакцій вкрай важливий для гарантії.
+
+Основні концепції транзакції описуються абревіатурою ACID – Atomicity, Consistency, Isolation,
+Durability (Атомарність, Согласованність, Ізоляція, Довговічність).
+
+Атомарність
+Гарантує, що будь-яка транзакція буде зафіксована лише цілком. Якщо одна з операцій в
+послідовності не виконається, то вся транзакція буде скасована.
+
+Согласованність
+Завершена транзакція фіксує лише припустимі результати. Наприклад, при переказі грошей з
+одного рахунку на інший, гроші повинні з'явитися на одному та зникнути на іншому рахунку.
+
+Ізоляція
+Кожна транзакція повинна бути ізольована від інших, тобто її результат не повинен залежати
+від виконання інших паралельних транзакцій.
+
+Довговічність
+Гарантує, що якщо ми отримали підтвердження виконання транзакції, зміни, викликані цією транзакцією,
+не повинні бути скасовані через збій системи.
+
+Управління транзакціями:
+COMMIT: Зберігає зміни.
+ROLLBACK: Скасовує зміни.
+SAVEPOINT: Створює точку, до якої група транзакцій може повернутися.
+SET TRANSACTION: Визначає ім'я транзакції.
+
+Команди управління транзакціями використовуються лише для DML команд: INSERT, UPDATE, DELETE і
+не можуть бути використані під час створення, зміни або видалення таблиці.
+
+MySQL підтримує два різних типи таблиць: транзакційні (InnoDB та BDB) і ті, що не підтримують транзакції (HEAP, ISAM, MERGE та MyISAM).
+
+Переваги таблиць без підтримки транзакцій (NTST):
+З їх використанням можливо працювати значно швидше, оскільки не виконуються додаткові транзакції.
+Для них потрібно менше дискового простору, оскільки не застосовуються додаткові транзакції.
+Для оновлень використовується менше оперативної пам'яті.
+
+
+2. Значення та синтаксис функції EXTRACT(), приклад. (10 балів)
+
+Функція EXTRACT() використовується для отримання конкретної частини дати або часу,
+такої як рік, місяць, день, година тощо. Ось синтаксис цієї функції:
+EXTRACT(unit FROM date)
+unit - це одиниця, яку ви хочете видобути з дати або часу, така як YEAR, MONTH, DAY, HOUR, MINUTE, SECOND і т.д.
+date - це дата або вираз дати, з якої ви хочете видобути частину.
+Наприклад, якщо вам потрібно отримати рік з конкретної дати, ви можете використати EXTRACT() так:
+SELECT EXTRACT(YEAR FROM '2023-07-15');
+
+
+
+3. Практичне завдання (20 балів).
+Відповідно до виданих таблиць створити в MySQL базу даних.
+Створити до бази наступні запити:
+ запит про замовлення за другий квартал. Динамічний набір записів повинен
+містити такі поля: Номер замовлення, Найменування товару, Назва фірми,
+Кількість, Ціна, Вартість. Дані впорядкувати по алфавіту назв фірм, а в
+межах однієї групи – по назві товару.
+ груповий запит, що виводить загальну кількість замовлень для кожної
+фірми.
+ запит на зовнішнє об’єднання, який повинен містити дистріб'юторів, які не
+замовляли товари Calligaris.
+Вартість розраховуються як добуток ціни товару на кількість замовленого товару. Якщо
+назва країни дистріб'ютора Польща, то ціна зменшується на 4,5%, в іншому випадку - ціна
+залишається незмінною.*/
+
+
+
+
+CREATE DATABASE variant_18;
+
+
+USE variant_18;
+
+
+CREATE TABLE dist(
+    dist_id INT PRIMARY KEY,
+    dist_name VARCHAR(55),
+    dist_address VARCHAR(60),
+    dist_country VARCHAR(55)
+);
+
+CREATE TABLE orders(
+    order_id INT PRIMARY KEY,
+    order_dist_id INT,
+    order_date DATE,
+    order_payment_date DATE
+);
+
+CREATE TABLE items(
+    item_id INT PRIMARY KEY,
+    item_name VARCHAR(55),
+    item_price INT
+);
+
+CREATE TABLE contracts(
+    contract_uniq INT PRIMARY KEY AUTO_INCREMENT,
+    contract_order_id INT,
+    contract_item_id INT,
+    contract_quantity INT
+);
+
+
+ALTER TABLE orders
+ADD CONSTRAINT order_dist_id_fk
+FOREIGN KEY (order_dist_id) REFERENCES dist(dist_id);
+
+ALTER TABLE contracts
+ADD CONSTRAINT contract_order_id_fk
+FOREIGN KEY (contract_order_id) REFERENCES orders(order_id),
+ADD CONSTRAINT contract_item_id_fk
+FOREIGN KEY (contract_item_id) REFERENCES items(item_id);
+
+#1
+SELECT
+    order_id AS "Номер замовлення",
+    item_name AS "Найменування товару",
+    dist_name AS "Назва фірми",
+    contract_quantity AS "Кількість",
+    item_price AS "Ціна",
+    IF(dist_country LIKE 'Poland', item_price * 0.955 * contract_quantity, item_price * contract_quantity ) AS "Вартість"
+FROM
+    orders
+JOIN contracts ON order_id = contract_order_id
+JOIN items ON contract_item_id = item_id
+JOIN dist ON order_dist_id = dist_id
+WHERE
+    QUARTER(order_date) = 2
+ORDER BY
+    dist_name, item_name;
+
+#2
+SELECT
+    dist_name AS "Назва фірми",
+    COUNT(order_id) AS "Загальна кількість замовлень"
+FROM
+    dist
+LEFT JOIN orders ON dist_id = order_dist_id
+GROUP BY
+    dist_name
+ORDER BY
+    dist_name;
+
+#3
+SELECT DISTINCT
+    dist_id AS "ID Дистриб'ютора",
+    dist_name AS "Назва Фірми",
+    dist_address AS "Адреса",
+    dist_country AS "Країна"
+FROM
+    dist
+WHERE
+    dist_id NOT IN (
+        SELECT DISTINCT order_dist_id
+        FROM orders
+        JOIN contracts ON order_id = contract_order_id
+        JOIN items ON contract_item_id = item_id
+        WHERE item_name LIKE '%Calligaris%'
+    );

@@ -1,0 +1,160 @@
+﻿/*ЕКЗАМЕНАЦІЙНИЙ БІЛЕТ № 16
+1. Типи таблиць, підтримувані СУБД MySQL. Їх коротка характеристика. (10 балів)
+
+Система управління базами даних (СУБД) MySQL підтримує кілька типів таблиць: ISAM, MyISAM, MERGE, HEAP, BDB, InnoDB.
+
+ISAM
+Таблиці ISAM вважаються застарілими.
+
+MyISAM
+В даний час використовуються таблиці MyISAM (вони використовуються за замовчуванням). Вони дозволяють:
+Підтримувати більший обсяг таблиць.
+Зберігання вмісту таблиці в форматі, що не залежить від платформи.
+Ефективніше працювати з індексами та атрибутом auto-increment.
+Ефективніше організована підтримка цілісності таблиці.
+Підтримка повнотекстового пошуку за допомогою індексу FULLTEXT — за це їх і люблять.
+
+Движок MERGE
+Таблиці MERGE призначені для об'єднання декількох таблиць в одну. При цьому за допомогою
+одного запиту можна звертатися до всіх таблиць, які входять до складу єдиної таблиці.
+
+Движок HEAP
+Таблиці HEAP — це тимчасові таблиці, призначені для зберігання в оперативній пам'яті.
+Для підвищення ефективності в них використовують тільки рядки фіксованої довжини.
+
+Движок BDB
+Таблиці BDB підтримуються дескриптором Berkeley DB, розробленим компанією Sleepycat. Дескриптор забезпечує:
+Обробку таблиць за допомогою транзакцій.
+Автоматичне відновлення після збоїв.
+Блокування на рівні сторінок, що забезпечує хорошу продуктивність при обробці паралельних запитів.
+
+Движок InnoDB
+Таблиці InnoDB — це найновіші таблиці, що були недавно введені в MySQL. Цей тип підтримується дескриптором InnoDB. Забезпечує:
+Обробку таблиць за допомогою транзакцій.
+Автоматичне відновлення після збоїв.
+Підтримку ключів, включаючи каскадне видалення.
+Блокування на рівні сторінок, що забезпечує хорошу продуктивність при обробці паралельних запитів.
+Таблиці можуть бути розподілені по декількох файлах.
+
+
+2. Значення та синтаксис оператора LIKE(), приклад. (10 балів)
+
+Оператор LIKE використовується в розділі WHERE для пошуку вказаного шаблону в стовпці.
+Зазвичай два шаблони часто використовуються разом з оператором LIKE:
+% - Знак відсотка представляє нуль, один або кілька символів.
+_ - Підкреслення представляє один символ.
+Приклад:
+LIKE
+SELECT * FROM avto WHERE name LIKE '%''%''%';
+SELECT * FROM avto WHERE name NOT LIKE '%''%';
+
+
+
+3. Практичне завдання (20 балів).
+Відповідно до виданих таблиць створити в MySQL базу даних.
+Створити до бази наступні запити:
+ запит про замовлення товарів. Динамічний набір записів повинен містити
+такі поля: Номер замовлення, Найменування товару, Назва фірми, Кількість,
+Ціна, Вартість. Дані впорядкувати по алфавіту назв фірм, а в межах однієї
+групи – по назві товару.
+ груповий запит, що виводить загальну кількість замовлень для кожної
+фірми.
+ запит на зовнішнє об’єднання, який повинен містити товари, які не
+замовляла фірма ТОВ СП "Росан" .
+Вартість розраховуються як добуток ціни товару на кількість замовленого товару. Якщо
+Вид замовлення “Самовивіз”, то ціна зменшується на 3,5%, в іншому випадку - ціна
+залишається незмінною*/
+
+
+
+CREATE DATABASE variant_16;
+
+USE variant_16;
+
+CREATE TABLE firms(
+    firm_id INT PRIMARY KEY,
+    firm_name VARCHAR(55),
+    firm_address VARCHAR(55),
+    firm_code VARCHAR(50)
+);
+
+CREATE TABLE orders(
+    order_id INT PRIMARY KEY,
+    order_firm_id INT,
+    order_type_id INT,
+    order_date DATE,
+    order_payment_date DATE
+);
+
+CREATE TABLE items(
+    item_id INT PRIMARY KEY,
+    item_name VARCHAR(55),
+    item_price INT
+);
+
+CREATE TABLE contracts(
+    contract_uniq INT PRIMARY KEY AUTO_INCREMENT,
+    contract_order_id INT,
+    contract_item_id INT,
+    contract_quantity INT
+);
+
+CREATE TABLE types(
+    type_id INT PRIMARY KEY,
+    type_name VARCHAR(55)
+);
+
+
+ALTER TABLE orders
+ADD CONSTRAINT order_firm_id_fk
+FOREIGN KEY (order_firm_id) REFERENCES firms(firm_id),
+ADD CONSTRAINT order_type_id_fk
+FOREIGN KEY (order_type_id) REFERENCES types(type_id);
+
+
+ALTER TABLE contracts
+ADD CONSTRAINT contract_order_id_fk
+FOREIGN KEY (contract_order_id) REFERENCES orders(order_id),
+ADD CONSTRAINT contract_item_id_fk
+FOREIGN KEY (contract_item_id) REFERENCES items(item_id);
+
+
+#1
+SELECT
+    order_id AS order_number,
+    item_name AS item_name,
+    firm_name AS firm_name,
+    contract_quantity AS quantity,
+    item_price AS price,
+    IF(type_id = 2, contract_quantity * item_price * 0.965, contract_quantity * item_price) AS total_value
+FROM orders
+JOIN contracts ON order_id = contract_order_id
+JOIN items ON contract_item_id = item_id
+JOIN firms ON order_firm_id = firm_id
+JOIN types ON order_type_id = type_id
+ORDER BY firm_name ASC, item_name ASC;
+
+
+#2
+SELECT
+    firm_name AS firm_name,
+    COUNT(order_id) AS total_orders
+FROM firms
+LEFT JOIN orders ON firm_id = order_firm_id
+GROUP BY firm_name;
+
+#3
+SELECT DISTINCT
+    item_id AS "ID Товару",
+    item_name AS "Назва Товару"
+FROM
+    items
+WHERE
+    item_id NOT IN (
+        SELECT item_id
+        FROM items
+        JOIN contracts ON item_id = contract_item_id
+        JOIN orders ON contract_order_id = order_id
+        JOIN firms ON order_firm_id = firm_id
+        WHERE firm_name = 'TOV SP "Rosan"'
+    );
